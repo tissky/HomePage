@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小说改编助手 - Novel Adaptation Assistant</title>
+    <link rel="stylesheet" href="./static/style.css">
+    <link rel="stylesheet" href="./static/novel-adapter.css">
+    <link rel="shortcut icon" href="./static/f2.png">
+    <link rel="stylesheet" href="./static/fontawesome.css">
+</head>
+<body class="novel-adapter-body">
+    <div class="adapter-container">
+        <!-- 左侧导航菜单 -->
+        <aside class="adapter-sidebar">
+            <div class="logo-section">
+                <h1><i class="fas fa-book"></i> 小说改编助手</h1>
+                <p class="subtitle">Novel Adaptation Assistant</p>
+            </div>
+            
+            <nav class="main-nav">
+                <button class="nav-btn active" data-view="new-project">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>新建项目</span>
+                </button>
+                <button class="nav-btn" data-view="projects">
+                    <i class="fas fa-folder"></i>
+                    <span>历史记录</span>
+                </button>
+                <button class="nav-btn" data-view="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>设置</span>
+                </button>
+            </nav>
+
+            <div class="projects-list" id="projects-list">
+                <h3>最近项目</h3>
+                <div class="projects-items">
+                    <!-- 动态加载项目列表 -->
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <a href="index.html" class="back-home">
+                    <i class="fas fa-home"></i> 返回主页
+                </a>
+            </div>
+        </aside>
+
+        <!-- 中间主工作区 -->
+        <main class="adapter-main">
+            <!-- 新建项目视图 -->
+            <div class="view active" id="new-project-view">
+                <div class="view-header">
+                    <h2><i class="fas fa-file-upload"></i> 上传小说内容</h2>
+                    <p class="description">上传您的小说文本，开始智能改编之旅</p>
+                </div>
+
+                <div class="upload-section">
+                    <div class="project-name-input">
+                        <label for="project-name">项目名称</label>
+                        <input type="text" id="project-name" placeholder="为您的改编项目命名...">
+                    </div>
+
+                    <div class="upload-area" id="upload-area">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>点击上传或拖拽文件到此处</p>
+                        <p class="hint">支持 .txt 文件</p>
+                        <input type="file" id="file-input" accept=".txt" hidden>
+                        <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+                            选择文件
+                        </button>
+                    </div>
+
+                    <div class="text-input-section">
+                        <label for="novel-text">或直接输入/粘贴小说内容</label>
+                        <textarea id="novel-text" placeholder="在此输入您的小说内容..."></textarea>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" id="start-analysis-btn" disabled>
+                            <i class="fas fa-rocket"></i> 开始分析
+                        </button>
+                        <button class="btn-secondary" id="clear-btn">
+                            <i class="fas fa-trash"></i> 清空
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 工作流状态指示器 -->
+                <div class="workflow-status hidden" id="workflow-status">
+                    <h3><i class="fas fa-tasks"></i> 改编工作流</h3>
+                    <div class="workflow-steps">
+                        <div class="step" data-step="1">
+                            <div class="step-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="step-content">
+                                <div class="step-title">内容检查</div>
+                                <div class="step-desc">验证上传内容</div>
+                            </div>
+                        </div>
+                        <div class="step" data-step="2">
+                            <div class="step-icon"><i class="fas fa-circle"></i></div>
+                            <div class="step-content">
+                                <div class="step-title">改编分析</div>
+                                <div class="step-desc">AI智能分析</div>
+                            </div>
+                        </div>
+                        <div class="step" data-step="3">
+                            <div class="step-icon"><i class="fas fa-circle"></i></div>
+                            <div class="step-content">
+                                <div class="step-title">用户确认</div>
+                                <div class="step-desc">审阅分析结果</div>
+                            </div>
+                        </div>
+                        <div class="step" data-step="4">
+                            <div class="step-icon"><i class="fas fa-circle"></i></div>
+                            <div class="step-content">
+                                <div class="step-title">剧本生成</div>
+                                <div class="step-desc">生成短剧剧本</div>
+                            </div>
+                        </div>
+                        <div class="step" data-step="5">
+                            <div class="step-icon"><i class="fas fa-circle"></i></div>
+                            <div class="step-content">
+                                <div class="step-title">编辑优化</div>
+                                <div class="step-desc">修改和调整</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分析结果展示 -->
+                <div class="analysis-result hidden" id="analysis-result">
+                    <div class="result-header">
+                        <h3><i class="fas fa-chart-line"></i> 改编分析报告</h3>
+                        <button class="btn-icon" onclick="toggleAnalysisExpand()">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                    <div class="result-content" id="analysis-content">
+                        <!-- 动态加载分析内容 -->
+                    </div>
+                    <div class="result-actions">
+                        <button class="btn-primary" id="confirm-analysis-btn">
+                            <i class="fas fa-check"></i> 确认并生成剧本
+                        </button>
+                        <button class="btn-secondary" id="regenerate-analysis-btn">
+                            <i class="fas fa-redo"></i> 重新分析
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 剧本展示 -->
+                <div class="script-result hidden" id="script-result">
+                    <div class="result-header">
+                        <h3><i class="fas fa-file-alt"></i> 生成剧本</h3>
+                        <div class="header-actions">
+                            <button class="btn-icon" onclick="toggleScriptEdit()">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
+                            <button class="btn-icon" onclick="exportScript()">
+                                <i class="fas fa-download"></i> 导出
+                            </button>
+                        </div>
+                    </div>
+                    <div class="script-editor" id="script-editor">
+                        <textarea id="script-content"></textarea>
+                    </div>
+                    <div class="script-actions">
+                        <button class="btn-primary hidden" id="save-script-btn">
+                            <i class="fas fa-save"></i> 保存修改
+                        </button>
+                        <button class="btn-secondary" id="regenerate-script-btn">
+                            <i class="fas fa-redo"></i> 重新生成
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 历史记录视图 -->
+            <div class="view" id="projects-view">
+                <div class="view-header">
+                    <h2><i class="fas fa-folder"></i> 历史记录</h2>
+                    <p class="description">管理您的改编项目</p>
+                </div>
+                <div class="projects-grid" id="projects-grid">
+                    <!-- 动态加载项目卡片 -->
+                </div>
+            </div>
+
+            <!-- 设置视图 -->
+            <div class="view" id="settings-view">
+                <div class="view-header">
+                    <h2><i class="fas fa-cog"></i> 设置</h2>
+                    <p class="description">配置您的改编助手</p>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-item">
+                        <label for="api-key">Claude API Key</label>
+                        <input type="password" id="api-key" placeholder="请输入您的 Claude API Key">
+                        <p class="setting-hint">API Key 安全存储在 Worker 环境变量中</p>
+                    </div>
+                    <div class="setting-item">
+                        <label for="model-select">模型选择</label>
+                        <select id="model-select">
+                            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (推荐)</option>
+                            <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                            <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <button class="btn-primary" id="save-settings-btn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧信息面板 -->
+        <aside class="adapter-panel">
+            <div class="panel-section">
+                <h3><i class="fas fa-terminal"></i> 指令面板</h3>
+                <div class="command-list">
+                    <button class="command-btn" data-command="analyze">
+                        <i class="fas fa-search"></i>
+                        <div>
+                            <div class="cmd-name">/分析</div>
+                            <div class="cmd-desc">分析改编质量</div>
+                        </div>
+                    </button>
+                    <button class="command-btn" data-command="adapt">
+                        <i class="fas fa-magic"></i>
+                        <div>
+                            <div class="cmd-name">/改编</div>
+                            <div class="cmd-desc">重新改编</div>
+                        </div>
+                    </button>
+                    <button class="command-btn" data-command="characters">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <div class="cmd-name">/角色档案</div>
+                            <div class="cmd-desc">查看角色信息</div>
+                        </div>
+                    </button>
+                    <button class="command-btn" data-command="relationships">
+                        <i class="fas fa-project-diagram"></i>
+                        <div>
+                            <div class="cmd-name">/关系图</div>
+                            <div class="cmd-desc">角色关系可视化</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-info-circle"></i> 当前项目</h3>
+                <div class="current-project-info" id="current-project-info">
+                    <p class="no-project">未选择项目</p>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-download"></i> 导出选项</h3>
+                <div class="export-buttons">
+                    <button class="export-btn" data-format="markdown">
+                        <i class="fab fa-markdown"></i> Markdown
+                    </button>
+                    <button class="export-btn" data-format="txt">
+                        <i class="fas fa-file-alt"></i> 纯文本
+                    </button>
+                    <button class="export-btn" data-format="json">
+                        <i class="fas fa-code"></i> JSON
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 模态对话框 -->
+    <div class="modal hidden" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title"></h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+            </div>
+            <div class="modal-footer" id="modal-footer">
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div class="loading-overlay hidden" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loading-text">处理中...</p>
+        </div>
+    </div>
+
+    <script src="./static/novel-adapter.js"></script>
+</body>
+</html>
