@@ -260,6 +260,73 @@ async function handleRequest(request) {
     }
   }
 
+  // ==================== Novel Adapter API Endpoints ====================
+  
+  // Get all projects
+  if (path === '/api/novel/projects' && request.method === 'GET') {
+    return await handleGetProjects(kv)
+  }
+
+  // Create new project
+  if (path === '/api/novel/projects' && request.method === 'POST') {
+    return await handleCreateProject(request, kv)
+  }
+
+  // Get specific project
+  if (path.match(/^\/api\/novel\/projects\/[^\/]+$/) && request.method === 'GET') {
+    const projectId = path.split('/').pop()
+    return await handleGetProject(projectId, kv)
+  }
+
+  // Update project
+  if (path.match(/^\/api\/novel\/projects\/[^\/]+$/) && request.method === 'PUT') {
+    const projectId = path.split('/').pop()
+    return await handleUpdateProject(projectId, request, kv)
+  }
+
+  // Delete project
+  if (path.match(/^\/api\/novel\/projects\/[^\/]+$/) && request.method === 'DELETE') {
+    const projectId = path.split('/').pop()
+    return await handleDeleteProject(projectId, kv)
+  }
+
+  // Analyze novel with Claude
+  if (path === '/api/novel/analyze' && request.method === 'POST') {
+    return await handleAnalyzeNovel(request, kv)
+  }
+
+  // Generate script with Claude
+  if (path === '/api/novel/generate-script' && request.method === 'POST') {
+    return await handleGenerateScript(request, kv)
+  }
+
+  // Analyze quality
+  if (path === '/api/novel/analyze-quality' && request.method === 'POST') {
+    return await handleAnalyzeQuality(request, kv)
+  }
+
+  // Character profile
+  if (path === '/api/novel/character-profile' && request.method === 'POST') {
+    return await handleCharacterProfile(request, kv)
+  }
+
+  // Relationship graph
+  if (path === '/api/novel/relationship-graph' && request.method === 'POST') {
+    return await handleRelationshipGraph(request, kv)
+  }
+
+  // Get settings
+  if (path === '/api/novel/settings' && request.method === 'GET') {
+    return await handleGetSettings(kv)
+  }
+
+  // Save settings
+  if (path === '/api/novel/settings' && request.method === 'POST') {
+    return await handleSaveSettings(request, kv)
+  }
+
+  // ==================== End Novel Adapter API ====================
+
   // 管理页面
   if (path === '/manage') {
     return new Response(getManagementPage(), {
@@ -1420,4 +1487,744 @@ function getManagementPage() {
   </body>
   </html>
   `;
+}
+
+// ==================== Novel Adapter Handler Functions ====================
+
+// Helper function to generate unique ID
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Helper function to get Claude API key
+async function getClaudeApiKey(kv) {
+  const settings = await kv.get('novel_adapter_settings', { type: 'json' });
+  return settings?.apiKey || CLAUDE_API_KEY || null;
+}
+
+// Helper function to call Claude API
+async function callClaudeAPI(apiKey, prompt, systemPrompt = '') {
+  if (!apiKey) {
+    throw new Error('Claude API key not configured. Please add it in settings.');
+  }
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 8000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Claude API call failed');
+  }
+
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+// Get all projects
+async function handleGetProjects(kv) {
+  try {
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    
+    // Sort by creation date (newest first)
+    projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    return new Response(JSON.stringify(projects), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Create new project
+async function handleCreateProject(request, kv) {
+  try {
+    const data = await request.json();
+    
+    const project = {
+      id: generateId(),
+      name: data.name || 'Untitled Project',
+      sourceContent: data.sourceContent || '',
+      status: data.status || 'draft',
+      analysis: null,
+      script: null,
+      characters: [],
+      relationshipGraph: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Get existing projects
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    
+    // Add new project
+    projects.push(project);
+    
+    // Save to KV
+    await kv.put('novel_projects', JSON.stringify(projects));
+    
+    return new Response(JSON.stringify(project), {
+      status: 201,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Get specific project
+async function handleGetProject(projectId, kv) {
+  try {
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    
+    const project = projects.find(p => p.id === projectId);
+    
+    if (!project) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    return new Response(JSON.stringify(project), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Update project
+async function handleUpdateProject(projectId, request, kv) {
+  try {
+    const updates = await request.json();
+    
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    
+    const projectIndex = projects.findIndex(p => p.id === projectId);
+    
+    if (projectIndex === -1) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Update project
+    projects[projectIndex] = {
+      ...projects[projectIndex],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Save to KV
+    await kv.put('novel_projects', JSON.stringify(projects));
+    
+    return new Response(JSON.stringify(projects[projectIndex]), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Delete project
+async function handleDeleteProject(projectId, kv) {
+  try {
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    
+    const filteredProjects = projects.filter(p => p.id !== projectId);
+    
+    if (filteredProjects.length === projects.length) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Save to KV
+    await kv.put('novel_projects', JSON.stringify(filteredProjects));
+    
+    return new Response(JSON.stringify({ message: 'Project deleted' }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Analyze novel with Claude
+async function handleAnalyzeNovel(request, kv) {
+  try {
+    const { projectId, content } = await request.json();
+    
+    if (!content) {
+      return new Response(JSON.stringify({ error: 'Content is required' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get API key
+    const apiKey = await getClaudeApiKey(kv);
+    
+    // System prompt for adaptation analysis
+    const systemPrompt = `你是一位专业的小说改编专家，擅长将小说改编为短剧剧本。你需要从以下8个维度分析小说的改编可行性：
+
+1. 精髓理解：提炼故事核心主题和情感内核
+2. 结构设计：规划短剧的整体结构和节奏
+3. 人物塑造：分析主要角色的性格特征和发展弧线
+4. 冲突设置：识别和强化戏剧冲突
+5. 情感共鸣：保持原作的情感力量
+6. 视觉表达：将文字转化为视觉场景
+7. 节奏把控：适应短剧的快节奏特点
+8. 创新改编：在尊重原作基础上进行必要创新
+
+请以专业、系统的方式分析提供的小说内容。`;
+
+    const prompt = `请对以下小说内容进行改编分析，包括：原文概要、核心剧情、人物梳理、情感基调、改编重点、难点分析、场次规划。
+
+小说内容：
+${content.substring(0, 20000)}
+
+请按照以下JSON格式返回分析结果：
+{
+  "summary": "原文概要",
+  "corePlot": "核心剧情分析",
+  "characters": "人物梳理",
+  "emotionalTone": "情感基调",
+  "adaptationFocus": "改编重点",
+  "challenges": "难点分析",
+  "sceneStructure": "场次规划"
+}`;
+
+    // Call Claude API
+    const response = await callClaudeAPI(apiKey, prompt, systemPrompt);
+    
+    // Try to parse as JSON
+    let analysis;
+    try {
+      // Remove markdown code blocks if present
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      analysis = JSON.parse(cleanedResponse);
+    } catch (e) {
+      // If not valid JSON, structure the response
+      analysis = {
+        summary: response.substring(0, 500),
+        corePlot: '详见完整分析',
+        characters: '详见完整分析',
+        emotionalTone: '详见完整分析',
+        adaptationFocus: '详见完整分析',
+        challenges: '详见完整分析',
+        sceneStructure: '详见完整分析',
+        fullAnalysis: response
+      };
+    }
+    
+    // Update project if projectId provided
+    if (projectId) {
+      const projectsData = await kv.get('novel_projects', { type: 'json' });
+      const projects = projectsData || [];
+      const projectIndex = projects.findIndex(p => p.id === projectId);
+      
+      if (projectIndex !== -1) {
+        projects[projectIndex].analysis = analysis;
+        projects[projectIndex].status = 'analyzed';
+        projects[projectIndex].updatedAt = new Date().toISOString();
+        await kv.put('novel_projects', JSON.stringify(projects));
+      }
+    }
+    
+    return new Response(JSON.stringify({ analysis }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Generate script with Claude
+async function handleGenerateScript(request, kv) {
+  try {
+    const { projectId } = await request.json();
+    
+    if (!projectId) {
+      return new Response(JSON.stringify({ error: 'Project ID is required' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get project
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    const project = projects.find(p => p.id === projectId);
+    
+    if (!project) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get API key
+    const apiKey = await getClaudeApiKey(kv);
+    
+    // System prompt for script generation
+    const systemPrompt = `你是一位专业的短剧编剧，擅长根据小说内容创作引人入胜的短剧剧本。你需要：
+
+1. 保持紧凑的节奏，每集2-5分钟
+2. 强化戏剧冲突和情感张力
+3. 使用视觉化的场景描述
+4. 设计有吸引力的对话
+5. 在每集结尾设置悬念
+6. 确保整体结构完整
+
+请按照标准的短剧剧本格式输出。`;
+
+    const prompt = `基于以下小说内容和改编分析，请创作一个短剧剧本（建议6-12集）。
+
+小说内容：
+${project.sourceContent?.substring(0, 15000) || ''}
+
+改编分析：
+${JSON.stringify(project.analysis, null, 2)}
+
+请按照以下格式输出剧本：
+
+【剧集标题】
+第X集：（副标题）
+
+场景1：
+[场景描述]
+人物对话和动作
+
+场景2：
+[场景描述]
+人物对话和动作
+
+...`;
+
+    // Call Claude API
+    const script = await callClaudeAPI(apiKey, prompt, systemPrompt);
+    
+    // Update project
+    const projectIndex = projects.findIndex(p => p.id === projectId);
+    if (projectIndex !== -1) {
+      projects[projectIndex].script = script;
+      projects[projectIndex].status = 'completed';
+      projects[projectIndex].updatedAt = new Date().toISOString();
+      await kv.put('novel_projects', JSON.stringify(projects));
+    }
+    
+    return new Response(JSON.stringify({ script }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Analyze quality
+async function handleAnalyzeQuality(request, kv) {
+  try {
+    const { projectId } = await request.json();
+    
+    if (!projectId) {
+      return new Response(JSON.stringify({ error: 'Project ID is required' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get project
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    const project = projects.find(p => p.id === projectId);
+    
+    if (!project || !project.script) {
+      return new Response(JSON.stringify({ error: 'Project or script not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get API key
+    const apiKey = await getClaudeApiKey(kv);
+    
+    const systemPrompt = `你是一位专业的剧本评审专家，需要从改编质量的角度评估短剧剧本。`;
+    
+    const prompt = `请评估以下短剧剧本的改编质量，从精髓理解、结构设计、人物塑造、冲突设置、情感共鸣、视觉表达、节奏把控、创新改编这8个维度进行分析。
+
+原文：
+${project.sourceContent?.substring(0, 5000) || ''}
+
+剧本：
+${project.script?.substring(0, 10000) || ''}
+
+请提供详细的质量分析和改进建议。`;
+
+    const analysis = await callClaudeAPI(apiKey, prompt, systemPrompt);
+    
+    return new Response(JSON.stringify({ analysis }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Character profile
+async function handleCharacterProfile(request, kv) {
+  try {
+    const { projectId } = await request.json();
+    
+    if (!projectId) {
+      return new Response(JSON.stringify({ error: 'Project ID is required' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get project
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    const project = projects.find(p => p.id === projectId);
+    
+    if (!project) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get API key
+    const apiKey = await getClaudeApiKey(kv);
+    
+    const systemPrompt = `你是一位专业的角色分析师，需要为剧本中的角色创建详细的角色档案。`;
+    
+    const prompt = `请为以下剧本中的主要角色创建详细的角色档案，包括：姓名、角色定位、性格特征、主要目标、人物弧光、关键台词等。
+
+剧本：
+${project.script?.substring(0, 10000) || project.sourceContent?.substring(0, 10000) || ''}
+
+请以JSON数组格式返回角色档案：
+[
+  {
+    "name": "角色名",
+    "role": "角色定位",
+    "personality": "性格特征",
+    "goal": "主要目标",
+    "arc": "人物弧光",
+    "description": "详细描述"
+  }
+]`;
+
+    const response = await callClaudeAPI(apiKey, prompt, systemPrompt);
+    
+    let characters;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      characters = JSON.parse(cleanedResponse);
+    } catch (e) {
+      characters = [{ name: '解析失败', description: response }];
+    }
+    
+    // Update project
+    const projectIndex = projects.findIndex(p => p.id === projectId);
+    if (projectIndex !== -1) {
+      projects[projectIndex].characters = characters;
+      projects[projectIndex].updatedAt = new Date().toISOString();
+      await kv.put('novel_projects', JSON.stringify(projects));
+    }
+    
+    return new Response(JSON.stringify({ characters }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Relationship graph
+async function handleRelationshipGraph(request, kv) {
+  try {
+    const { projectId } = await request.json();
+    
+    if (!projectId) {
+      return new Response(JSON.stringify({ error: 'Project ID is required' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get project
+    const projectsData = await kv.get('novel_projects', { type: 'json' });
+    const projects = projectsData || [];
+    const project = projects.find(p => p.id === projectId);
+    
+    if (!project) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+    
+    // Get API key
+    const apiKey = await getClaudeApiKey(kv);
+    
+    const systemPrompt = `你是一位专业的关系分析师，需要生成角色关系图的Mermaid语法代码。`;
+    
+    const prompt = `请分析以下剧本中的角色关系，并生成Mermaid语法的关系图代码。
+
+剧本：
+${project.script?.substring(0, 10000) || project.sourceContent?.substring(0, 10000) || ''}
+
+请只返回Mermaid代码，格式如下：
+graph TD
+    A[角色A] -->|关系| B[角色B]
+    B -->|关系| C[角色C]`;
+
+    const mermaidCode = await callClaudeAPI(apiKey, prompt, systemPrompt);
+    
+    // Update project
+    const projectIndex = projects.findIndex(p => p.id === projectId);
+    if (projectIndex !== -1) {
+      projects[projectIndex].relationshipGraph = mermaidCode;
+      projects[projectIndex].updatedAt = new Date().toISOString();
+      await kv.put('novel_projects', JSON.stringify(projects));
+    }
+    
+    return new Response(JSON.stringify({ mermaidCode }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Get settings
+async function handleGetSettings(kv) {
+  try {
+    const settings = await kv.get('novel_adapter_settings', { type: 'json' });
+    
+    // Don't return the API key for security
+    const safeSettings = {
+      model: settings?.model || 'claude-3-5-sonnet-20241022',
+      hasApiKey: !!settings?.apiKey
+    };
+    
+    return new Response(JSON.stringify(safeSettings), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+// Save settings
+async function handleSaveSettings(request, kv) {
+  try {
+    const { apiKey, model } = await request.json();
+    
+    // Get current settings
+    const currentSettings = await kv.get('novel_adapter_settings', { type: 'json' }) || {};
+    
+    // Update settings
+    const newSettings = {
+      ...currentSettings,
+      model: model || currentSettings.model || 'claude-3-5-sonnet-20241022'
+    };
+    
+    // Only update API key if provided
+    if (apiKey) {
+      newSettings.apiKey = apiKey;
+    }
+    
+    // Save to KV
+    await kv.put('novel_adapter_settings', JSON.stringify(newSettings));
+    
+    return new Response(JSON.stringify({ message: 'Settings saved successfully' }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
 }
