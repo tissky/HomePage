@@ -1272,6 +1272,38 @@ body.dark-background::before {
     }
 }
 
+/* 产品页面入口按钮 */
+.products-entry {
+    position: fixed;
+    bottom: 150px;
+    right: 30px;
+    width: 55px;
+    height: 55px;
+    background: linear-gradient(135deg, #74b9ff 0%, #fd79a8 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(116, 185, 255, 0.4);
+    z-index: 999;
+    text-decoration: none;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.products-entry:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(116, 185, 255, 0.6);
+    background: linear-gradient(135deg, #fd79a8 0%, #74b9ff 100%);
+}
+
+.products-entry i {
+    animation: pulse 2s ease-in-out infinite;
+}
+
 /* 小说改编助手入口按钮 */
 .novel-adapter-entry {
     position: fixed;
@@ -1314,6 +1346,14 @@ body.dark-background::before {
 }
 
 @media screen and (max-width: 768px) {
+    .products-entry {
+        bottom: 190px;
+        right: 15px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
     .novel-adapter-entry {
         bottom: 130px;
         right: 15px;
