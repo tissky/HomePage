@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品中心 - AI Next</title>
+    <meta name="description" content="探索我们的创新产品，为您提供最佳的技术解决方案">
+    <meta name="keywords" content="AI产品,Web应用,移动应用,开发工具,创新科技">
+    <meta name="author" content="AI Next">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="产品中心 - AI Next">
+    <meta property="og:description" content="探索我们的创新产品，为您提供最佳的技术解决方案">
+    <meta property="og:site_name" content="AI Next">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="产品中心 - AI Next">
+    <meta name="twitter:description" content="探索我们的创新产品，为您提供最佳的技术解决方案">
+    
+    <link rel="stylesheet" href="./static/products.css">
+    <link rel="shortcut icon" href="./static/f2.png">
+    <link rel="stylesheet" href="./static/fontawesome.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <i class="fas fa-home"></i>
+                <span>AI Next</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="切换导航菜单">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#hero" class="nav-link">首页</a></li>
+                <li><a href="#products" class="nav-link">产品</a></li>
+                <li><a href="#features" class="nav-link">特性</a></li>
+                <li><a href="#contact" class="nav-link">联系</a></li>
+                <li><a href="index.html" class="nav-link nav-link-home">返回主页</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+            <div class="hero-particles" id="particles"></div>
+        </div>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="hero-title-line">创新产品</span>
+                <span class="hero-title-line">改变未来</span>
+            </h1>
+            <p class="hero-subtitle">探索我们精心打造的产品系列，为您带来前所未有的体验</p>
+            <div class="hero-buttons">
+                <a href="#products" class="btn btn-primary">
+                    <span>浏览产品</span>
+                    <i class="fas fa-arrow-down"></i>
+                </a>
+                <a href="#contact" class="btn btn-secondary">
+                    <span>联系我们</span>
+                    <i class="fas fa-paper-plane"></i>
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number" data-target="50">0</div>
+                    <div class="stat-label">优质产品</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="10000">0</div>
+                    <div class="stat-label">活跃用户</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="99">0</div>
+                    <div class="stat-label">满意度</div>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <span>向下滚动</span>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="products-section" id="products">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">我们的产品</h2>
+                <p class="section-subtitle">精心设计，用心打造，为您提供最佳解决方案</p>
+            </div>
+
+            <!-- 产品过滤器 -->
+            <div class="product-filters">
+                <button class="filter-btn active" data-filter="all">
+                    <i class="fas fa-th"></i>
+                    <span>全部</span>
+                </button>
+                <button class="filter-btn" data-filter="ai">
+                    <i class="fas fa-brain"></i>
+                    <span>AI 工具</span>
+                </button>
+                <button class="filter-btn" data-filter="web">
+                    <i class="fas fa-globe"></i>
+                    <span>Web 应用</span>
+                </button>
+                <button class="filter-btn" data-filter="mobile">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>移动应用</span>
+                </button>
+                <button class="filter-btn" data-filter="tool">
+                    <i class="fas fa-tools"></i>
+                    <span>开发工具</span>
+                </button>
+            </div>
+
+            <!-- 产品网格 -->
+            <div class="products-grid" id="productsGrid">
+                <!-- 产品卡片将通过 JavaScript 动态加载 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">核心特性</h2>
+                <p class="section-subtitle">为什么选择我们的产品</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3 class="feature-title">高性能</h3>
+                    <p class="feature-description">采用最新技术架构，确保产品运行流畅高效</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">安全可靠</h3>
+                    <p class="feature-description">企业级安全防护，保护您的数据和隐私</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <h3 class="feature-title">易于使用</h3>
+                    <p class="feature-description">简洁直观的界面设计，降低学习成本</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3 class="feature-title">持续更新</h3>
+                    <p class="feature-description">定期更新迭代，不断优化用户体验</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h3 class="feature-title">专业支持</h3>
+                    <p class="feature-description">7×24小时技术支持，随时为您解决问题</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3 class="feature-title">高度定制</h3>
+                    <p class="feature-description">灵活的配置选项，满足个性化需求</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="contact">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">准备好开始了吗？</h2>
+                <p class="cta-subtitle">立即体验我们的产品，开启您的创新之旅</p>
+                <div class="cta-buttons">
+                    <a href="index.html" class="btn btn-primary btn-large">
+                        <span>返回主页</span>
+                        <i class="fas fa-home"></i>
+                    </a>
+                    <a href="novel-adapter.html" class="btn btn-secondary btn-large">
+                        <span>小说改编助手</span>
+                        <i class="fas fa-book"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 class="footer-title">AI Next</h3>
+                    <p class="footer-description">致力于打造优质的技术产品，为用户创造价值</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-link" aria-label="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4 class="footer-subtitle">快速链接</h4>
+                    <ul class="footer-links">
+                        <li><a href="#products">产品中心</a></li>
+                        <li><a href="#features">产品特性</a></li>
+                        <li><a href="index.html">返回主页</a></li>
+                        <li><a href="novel-adapter.html">小说改编助手</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4 class="footer-subtitle">联系方式</h4>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-envelope"></i> contact@ainext.com</li>
+                        <li><i class="fas fa-globe"></i> ainext.moonlite.top</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>© 2025 AI Next. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 返回顶部按钮 -->
+    <button class="back-to-top" id="backToTop" aria-label="返回顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="./static/products.js"></script>
+</body>
+</html>
